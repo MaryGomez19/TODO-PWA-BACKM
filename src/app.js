@@ -10,6 +10,7 @@ const app = express();
 app.use(cors({
     origin:[
         "http://localhost:5173",
+        "https://todo-pwa-frontm.vercel.app",
         process.env.FRONT_ORIGIN || "" 
     ].filter(Boolean),
     credentials: true
