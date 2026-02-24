@@ -22,11 +22,15 @@ taskSchema.index(
     { user: 1, clienteId: 1 },
     {
         unique: true,
-        partialFilterExpression: { clienteId: { $exists: true, $ne: null, $ne: ''}, deleted:{$ne: true} 
-    },
-    name: 'uniq_user_clienteId',
-    background: true
-    
+        partialFilterExpression: { 
+            clienteId: { $exists: true, $ne: null, $ne: ''}, 
+            deleted:{$ne: true}, 
+            editCount: { type: Number, default: 0 },
+            viewCount: { type: Number, default: 0 },
+            lastInteracted: { type: Date, default: Date.now }
+        },
+        name: 'uniq_user_clienteId',
+        background: true
     });
 
 export default mongoose.model("Task", taskSchema);
