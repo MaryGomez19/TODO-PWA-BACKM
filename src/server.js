@@ -8,6 +8,7 @@ import morgan from 'morgan';
 
 import authRoutes from './routes/authRoutes.js';
 import taskRoutes from './routes/taskRoutes.js';
+import e from 'cors';
 
 
 const app = express();

@@ -1,11 +1,8 @@
 // src/db/connect.js
 import mongoose from "mongoose";
 
-let cached = globalThis.mongoose;
-
-if (!cached) {
-  cached = globalThis.mongoose = { conn: null, promise: null };
-}
+let cached = global._mongooseConn;
+if (!cached) cached = global._mongooseConn = { conn: null, promise: null };
 
 export async function connectToDB() {
 
