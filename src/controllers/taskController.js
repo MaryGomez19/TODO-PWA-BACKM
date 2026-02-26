@@ -20,13 +20,15 @@ export async function list(req, res) {
 }
 
 export async function create(req, res) {
-  const {title, description = "", status = "Pendiente", clienteId} = req.body;
+  const {title, description = "", imageUrl = "", imagePublicId = "", status = "Pendiente", clienteId} = req.body;
   if(!title) return res.status(400).json({message: 'El título es obligatorio'});
   
   const task = await Task.create({
     user: req.userId,
     title,
     description,
+    imageUrl,
+    imagePublicId,
     status: allowed.includes(status) ? status : 'Pendiente',
     clienteId
   });
@@ -37,7 +39,7 @@ export async function create(req, res) {
 
 export async function update(req, res) {
   const { id } = req.params;
-  const { title, description, status, completed } = req.body;
+  const { title, description, imageUrl, imagePublicId, status, completed } = req.body;
 
   if (status && !allowed.includes(status))
     return res.status(400).json({ message: "Estado inválido" });
@@ -62,6 +64,17 @@ export async function update(req, res) {
 
   // detectar que interactuó
   task.lastInteracted = new Date();
+
+  //Cambio de imagen 
+  if (imageUrl && imageUrl !== task.imageUrl) {
+
+  if (task.imagePublicId) {
+    await cloudinary.uploader.destroy(task.imagePublicId);
+  }
+
+  task.imageUrl = imageUrl;
+  task.imagePublicId = imagePublicId;
+}
 
   // aplicar cambios
   if (title !== undefined) task.title = title;
@@ -99,6 +112,8 @@ export async function bulksync(req, res) {
         clienteId: String(t.clienteId),
         title: String(t.title),
         description: t.description ?? "",
+        imageUrl: t.imageUrl ?? "",
+        imagePublicId: t.imagePublicId ?? "",
         status: allowed.includes(t.status) ? t.status : "Pendiente",
       }));
 
@@ -112,6 +127,8 @@ export async function bulksync(req, res) {
           $set: {
             title: t.title,
             description: t.description,
+            imageUrl: t.imageUrl,
+            imagePublicId: t.imagePublicId,
             status: t.status,
           },
           $setOnInsert: {
