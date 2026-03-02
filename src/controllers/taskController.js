@@ -1,4 +1,5 @@
 import Task from "../models/Task.js";
+import {v2 as cloudinary} from 'cloudinary';
 
 
 const allowed =["Pendiente", "En progreso", "Completada"];
@@ -20,14 +21,14 @@ export async function list(req, res) {
 }
 
 export async function create(req, res) {
-  const {title, description = "", imageUrl = "", imagePublicId = "", status = "Pendiente", clienteId} = req.body;
+  const {title, description = "", image = "", imagePublicId = "", status = "Pendiente", clienteId} = req.body;
   if(!title) return res.status(400).json({message: 'El título es obligatorio'});
   
   const task = await Task.create({
     user: req.userId,
     title,
     description,
-    imageUrl,
+    image,
     imagePublicId,
     status: allowed.includes(status) ? status : 'Pendiente',
     clienteId
@@ -39,7 +40,7 @@ export async function create(req, res) {
 
 export async function update(req, res) {
   const { id } = req.params;
-  const { title, description, imageUrl, imagePublicId, status, completed } = req.body;
+  const { title, description, image, imagePublicId, status, completed } = req.body;
 
   if (status && !allowed.includes(status))
     return res.status(400).json({ message: "Estado inválido" });
@@ -66,20 +67,20 @@ export async function update(req, res) {
   task.lastInteracted = new Date();
 
   //Cambio de imagen 
-  if (imageUrl && imageUrl !== task.imageUrl) {
+  if (image && image !== task.image) {
 
   if (task.imagePublicId) {
     await cloudinary.uploader.destroy(task.imagePublicId);
   }
 
-  task.imageUrl = imageUrl;
+  task.image = image;
   task.imagePublicId = imagePublicId;
 }
 
   // aplicar cambios
   if (title !== undefined) task.title = title;
   if (description !== undefined) task.description = description;
-  if (status !== undefined) task.status = status;
+  if (newStatus !== undefined) task.status = newStatus;
 
   await task.save();
 
@@ -88,12 +89,17 @@ export async function update(req, res) {
 
 export async function remove(req, res) {
   const { id } = req.params;
-  const task = await Task.findOneAndUpdate(
-    { _id: id, user: req.userId },
-    { deleted: true },
-    { new: true }
-  );
+
+  const task = await Task.findOne({ _id: id, user: req.userId });
   if (!task) return res.status(404).json({ message: "Tarea no encontrada" });
+
+  if (task.imagePublicId) {
+    await cloudinary.uploader.destroy(task.imagePublicId);
+  }
+
+  task.deleted = true;
+  await task.save();
+
   res.json({ ok: true });
 }
 
@@ -112,7 +118,7 @@ export async function bulksync(req, res) {
         clienteId: String(t.clienteId),
         title: String(t.title),
         description: t.description ?? "",
-        imageUrl: t.imageUrl ?? "",
+        image: t.image ?? "",
         imagePublicId: t.imagePublicId ?? "",
         status: allowed.includes(t.status) ? t.status : "Pendiente",
       }));
@@ -127,7 +133,7 @@ export async function bulksync(req, res) {
           $set: {
             title: t.title,
             description: t.description,
-            imageUrl: t.imageUrl,
+            image: t.image,
             imagePublicId: t.imagePublicId,
             status: t.status,
           },
